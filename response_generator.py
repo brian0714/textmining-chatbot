@@ -110,6 +110,9 @@ def generate_response(prompt):
     elif prompt == "Clustering analysis":
         return f"Working on clusetering analysis..."
     elif prompt == "ESG analysis":
+
+        # "colab code"
+
         return f"Working on ESG analysis..."
 
 
