@@ -57,7 +57,7 @@ def extract_text_by_page(doc, max_pages=40, skip_pages=[]):
 
             # Update progress
             progress = (page_number + 1) / total_pages
-            print(f"Progress: {round(progress, 2)}")
+            print(f"Progress: {round(progress, 2)*100}%")
             print(f"Processing {page_number + 1}/{total_pages} pages with document (max_pages:{max_pages})...")
 
         except Exception as e:
@@ -69,52 +69,73 @@ def extract_text_by_page(doc, max_pages=40, skip_pages=[]):
 
 def pdf_upload_section():
     uploaded_file = st.file_uploader("📄 Upload a PDF file", type=["pdf"])
-    if uploaded_file:
+
+    # 若已解析 pdf 就不要重複執行
+    if uploaded_file and "pdf_text" not in st.session_state:
         doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
-        # if not st.session_state["pdf_text"]:
-        extracted = extract_text_by_page(doc)
+        extracted = extract_text_by_page(doc, max_pages=len(doc))
         st.session_state["pdf_text"] = extracted
         st.success("✅ PDF uploaded and parsed successfully!")
+
+    # clear button
+    if "pdf_text" in st.session_state:
         if st.button("🗑️ Clear PDF"):
             del st.session_state["pdf_text"]
-            st.experimental_rerun()
+            st.rerun()
 
-def get_pdf_context():
-    if "pdf_text" in st.session_state:
-        return "\n\n".join([f"[Page {p['page']}]: {p['content'][:300]}..." for p in st.session_state["pdf_text"]])
-    return ""
+def get_pdf_context(page="all"):
+    if page != "all" and "pdf_text" in st.session_state:
+        # Return specific page content
+        for p in st.session_state["pdf_text"]:
+            if p["page"] == page:
+                return f"[Page {p['page']}]: {p['content']}"
+        return f"Page {page} not found in the PDF."
+    elif page == "all" and "pdf_text" in st.session_state:
+        # Return part of the text for context
+        # return "\n\n".join([f"[Page {p['page']}]: {p['content'][:300]}..." for p in st.session_state["pdf_text"]])
+        # Return whole text
+        return "\n\n".join([f"[Page {p['page']}]: {p['content']}" for p in st.session_state["pdf_text"]])
+    else:
+        return ""
 
 def generate_response(prompt):
     pdf_context = get_pdf_context()
+    prompt = prompt.strip().lower()
 
-    if prompt not in ["Show content", "Clustering analysis", "ESG analysis"]:
+    if prompt not in ["show content", "clustering analysis", "esg analysis"] and "show pdf page" not in prompt:
         return (
             "📝 It looks like your prompt might not match the expected operations.\n\n"
             "💡 Try entering prompts like:\n"
             "- Show content\n"
+            "- Show pdf page <num>\n"
             "- Clustering analysis\n"
             "- ESG analysis\n\n"
             "📄 Also, make sure you've uploaded a PDF file first!"
         )
 
-    if pdf_context and prompt == "Show content":
+    if not pdf_context:
+        return f"Please upload a PDF file to get context."
+    elif prompt == "show content":
         # {pdf_context[:1000]}
         return f"""
         🤖 Here's what I found from the uploaded PDF:\n
         {pdf_context}
-        ----------------
-        (Enter a more specific instructing prompt for better results!)
+        ----------------------------------\n
         """
-    elif not pdf_context and prompt == "Show content":
-        return f"Please upload a PDF file to get context."
+    elif "show pdf page" in prompt:
+        match = re.search(r"show pdf page (\d+)", prompt)
+        if match:
+            page_number = int(match.group(1))
+            return get_pdf_context(page=page_number)
+        else:
+            return "⚠️ Please specify the page number, e.g., `Show PDF page 2`."
     elif prompt == "Clustering analysis":
-        return f"Working on clusetering analysis..."
+
+        # "colab code"
+
+        return f"📊 Working on clusetering analysis..."
     elif prompt == "ESG analysis":
 
         # "colab code"
 
-        return f"Working on ESG analysis..."
-
-
-
-
+        return f"🌱 Working on ESG analysis..."
