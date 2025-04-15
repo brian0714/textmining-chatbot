@@ -57,7 +57,7 @@ def extract_text_by_page(doc, max_pages=40, skip_pages=[]):
 
             # Update progress
             progress = (page_number + 1) / total_pages
-            print(f"Progress: {round(progress, 2)*100}%")
+            print(f"Progress: {round(progress*100)}%")
             print(f"Processing {page_number + 1}/{total_pages} pages with document (max_pages:{max_pages})...")
 
         except Exception as e:
@@ -77,7 +77,7 @@ def pdf_upload_section():
         st.session_state["pdf_text"] = extracted
         st.success("✅ PDF uploaded and parsed successfully!")
 
-    # clear button
+    # Clear button
     if "pdf_text" in st.session_state:
         if st.button("🗑️ Clear PDF"):
             del st.session_state["pdf_text"]
@@ -100,6 +100,7 @@ def get_pdf_context(page="all"):
 
 def generate_response(prompt):
     pdf_context = get_pdf_context()
+    original_prompt = prompt
     prompt = prompt.strip().lower()
 
     if prompt not in ["show content", "clustering analysis", "esg analysis"] and "show pdf page" not in prompt:
@@ -129,13 +130,16 @@ def generate_response(prompt):
             return get_pdf_context(page=page_number)
         else:
             return "⚠️ Please specify the page number, e.g., `Show PDF page 2`."
-    elif prompt == "Clustering analysis":
+    elif prompt == "clustering analysis":
 
         # "colab code"
 
-        return f"📊 Working on clusetering analysis..."
-    elif prompt == "ESG analysis":
+        return f"📊 Working on clustering analysis..."
+    elif prompt == "esg analysis":
 
         # "colab code"
 
         return f"🌱 Working on ESG analysis..."
+
+    # 加一個 fallback return，防止漏掉時回傳 None
+    return f"⚠️ Unexpected issue of prompt - ```{original_prompt}```. Please try again."
