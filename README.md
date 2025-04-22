@@ -12,6 +12,19 @@ A simple Streamlit app that shows how to build a chatbot using OpenAI's GPT-3.5.
    $ pip install -r requirements.txt
    ```
 
+    - Note: if numpy installed with error:
+      - Use python version == 3.10 and open venv to run 3.10 version
+   ```
+   # for window users
+   $ py -3.10 -m venv .venv
+   $ .venv\Scripts\activate
+   ```
+      - Deactivate to quit
+   ```
+   $ deactivate
+   ```
+
+
 2. Run the app
 
    ```

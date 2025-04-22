@@ -3,6 +3,7 @@ from openai import OpenAI
 import time
 import requests
 from db_utils import init_db, get_user_profile, save_user_profile
+from qa_utils.Word2vec import view_2d, view_3d, skipgram, cbow, negative_sampling
 from ui_utils import *
 from pdf_context import *
 from response_generator import generate_response
@@ -53,6 +54,7 @@ def main():
     user_image = st.session_state["user_image"]
     st.title(f"💬 {user_name}'s Chatbot")
 
+    # Left side bar
     with st.sidebar:
         st_c_1 = st.container(border=True)
         with st_c_1:
@@ -70,6 +72,34 @@ def main():
                     st.image("https://www.w3schools.com/howto/img_avatar.png")
             else:
                 st.image("https://www.w3schools.com/howto/img_avatar.png")
+
+        st.markdown("---")
+
+        # radio expander
+        # with st.expander("📦 Vector Semantics - Word2vec", expanded=False):
+        #     option = st.radio(
+        #         "Select a function:",
+        #         ["Vector space - 2D View", "Vector space - 3D View", "SKIP-GRAM", "CBOW", "Negative Sampling"],
+        #         index=0
+        #     )
+        #     st.session_state["selected_vector_task"] = option
+
+        with st.expander("📦 Vector Semantics - Word2vec", expanded=False):
+            if st.button("🧭 Vector space - 2D View"):
+                st.session_state["vector_task"] = view_2d.run
+
+            # if st.button("🧭 Vector space - 3D View"):
+            #     st.session_state["vector_task"] = view_3d.run
+
+            # if st.button("⚙️ SKIP-GRAM"):
+            #     st.session_state["vector_task"] = skipgram.run
+
+            # if st.button("📘 CBOW"):
+            #     st.session_state["vector_task"] = cbow.run
+
+            # if st.button("🔍 Negative Sampling"):
+            #     st.session_state["vector_task"] = negative_sampling.run
+
 
         st.markdown("---")
         # st.write("🌐 Language")
@@ -91,8 +121,33 @@ def main():
                     st.rerun()
 
     st_c_chat = st.container(border=True)
+    # pdf upload section
     pdf_upload_section()
 
+
+    # 將 pending 指令變成正式指令（解決 prompt 不會立即生效的問題）
+    if "pending_vector_task" in st.session_state:
+        st.session_state["vector_task"] = st.session_state["pending_vector_task"]
+        del st.session_state["pending_vector_task"]
+        st.rerun()  # 🔁 強制 rerun 以觸發 render
+
+    # vector task section
+    if "vector_task" in st.session_state and callable(st.session_state["vector_task"]):
+        st.markdown("## 🧠 Provide your own sentences for Word2Vec")
+
+        # 使用者輸入區塊
+        user_input_text = st.text_area(
+            label="Enter sentences (one per line):",
+            height=300,
+            placeholder="Type one sentence per line...\nExample:\nThe food is fresh and safe.\nWe promote energy saving."
+        )
+
+        if st.button("🚀 Run Vector Task") and user_input_text.strip():
+            # 分割成 list of sentences
+            input_sentences = [line.strip() for line in user_input_text.splitlines() if line.strip()]
+            st.session_state["vector_task"](sentences=input_sentences)
+
+    # chat section
     if "messages" not in st.session_state:
         st.session_state.messages = []
     else:
