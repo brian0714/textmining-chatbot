@@ -124,13 +124,6 @@ def main():
     # pdf upload section
     pdf_upload_section()
 
-
-    # 將 pending 指令變成正式指令（解決 prompt 不會立即生效的問題）
-    if "pending_vector_task" in st.session_state:
-        st.session_state["vector_task"] = st.session_state["pending_vector_task"]
-        del st.session_state["pending_vector_task"]
-        st.rerun()  # 🔁 強制 rerun 以觸發 render
-
     # vector task section
     if "vector_task" in st.session_state and callable(st.session_state["vector_task"]):
         st.markdown("## 🧠 Provide your own sentences for Word2Vec")
@@ -186,6 +179,12 @@ def main():
 
     if prompt := st.chat_input(placeholder=placeholderstr, key="chat_bot"):
         chat(prompt)
+
+    # 將 pending task 指令變成正式指令觸發 rerun
+    if "pending_vector_task" in st.session_state:
+        st.session_state["vector_task"] = st.session_state["pending_vector_task"]
+        del st.session_state["pending_vector_task"]
+        st.rerun()  # 🔁 強制 rerun 以觸發 render
 
 if __name__ == "__main__":
     main()

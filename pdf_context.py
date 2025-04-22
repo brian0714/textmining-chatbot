@@ -46,7 +46,6 @@ def extract_text_by_page(doc, max_pages=40, skip_pages=[]):
 
     return formatted_full_text
 
-
 def get_pdf_context(page="all") -> str:
     if "pdf_text" not in st.session_state:
         return ""
