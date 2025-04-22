@@ -1,11 +1,11 @@
 import streamlit as st
 from openai import OpenAI
 import time
-import re
 import requests
 from db_utils import init_db, get_user_profile, save_user_profile
-from ui_utils import show_dismissible_alert
-from response_generator import pdf_upload_section, generate_response
+from ui_utils import *
+from pdf_context import *
+from response_generator import generate_response
 
 placeholderstr = "Please input your command"
 # user_name = "Brian"
@@ -111,15 +111,6 @@ def main():
                         st_c_chat.chat_message(msg["role"],avatar=image_tmp).markdown((msg["content"]))
                 except:
                     st_c_chat.chat_message(msg["role"]).markdown((msg["content"]))
-
-    # test generate_response function
-    # def generate_response(prompt):
-    #     pattern = r'\b(i(\'?m| am| feel| think i(\'?)?m)?\s*(so\s+)?(stupid|ugly|dumb|idiot|worthless|loser|useless))\b'
-    #     if re.search(pattern, prompt, re.IGNORECASE):
-    #         return "Yes, you are!"
-    #     else:
-    #         return f"You say: {prompt}."
-    # response = generate_response(prompt)
 
     # Chat function section (timing included inside function)
     def chat(prompt: str):

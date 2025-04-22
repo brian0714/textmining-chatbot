@@ -1,5 +1,26 @@
+import fitz  # PyMuPDF
 import streamlit as st
+from pdf_context import *
 
+# pdf upload section
+def pdf_upload_section():
+    with st.expander("📄 Upload a PDF file", expanded=True):
+        uploaded_file = st.file_uploader("Upload PDF file", type=["pdf"], label_visibility="collapsed")
+
+        # 若已解析 pdf 就不要重複執行
+        if uploaded_file and "pdf_text" not in st.session_state:
+            doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+            extracted = extract_text_by_page(doc, max_pages=len(doc))
+            st.session_state["pdf_text"] = extracted
+            st.success("✅ PDF uploaded and parsed successfully!")
+
+        # Clear button
+        if "pdf_text" in st.session_state:
+            if st.button("🗑️ Clear PDF"):
+                del st.session_state["pdf_text"]
+                st.rerun()
+
+# alert section
 def show_dismissible_alert(key: str, text: str, alert_type="warning"):
     colors = {
         "warning": {"bg": "#FFF3CD", "border": "#FFA502"},
