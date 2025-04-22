@@ -68,20 +68,21 @@ def extract_text_by_page(doc, max_pages=40, skip_pages=[]):
     return formatted_full_text
 
 def pdf_upload_section():
-    uploaded_file = st.file_uploader("📄 Upload a PDF file", type=["pdf"])
+    with st.expander("📄 Upload a PDF file", expanded=True):
+        uploaded_file = st.file_uploader("", type=["pdf"])
 
-    # 若已解析 pdf 就不要重複執行
-    if uploaded_file and "pdf_text" not in st.session_state:
-        doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
-        extracted = extract_text_by_page(doc, max_pages=len(doc))
-        st.session_state["pdf_text"] = extracted
-        st.success("✅ PDF uploaded and parsed successfully!")
+        # 若已解析 pdf 就不要重複執行
+        if uploaded_file and "pdf_text" not in st.session_state:
+            doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+            extracted = extract_text_by_page(doc, max_pages=len(doc))
+            st.session_state["pdf_text"] = extracted
+            st.success("✅ PDF uploaded and parsed successfully!")
 
-    # Clear button
-    if "pdf_text" in st.session_state:
-        if st.button("🗑️ Clear PDF"):
-            del st.session_state["pdf_text"]
-            st.rerun()
+        # Clear button
+        if "pdf_text" in st.session_state:
+            if st.button("🗑️ Clear PDF"):
+                del st.session_state["pdf_text"]
+                st.rerun()
 
 def get_pdf_context(page="all"):
     if page != "all" and "pdf_text" in st.session_state:
