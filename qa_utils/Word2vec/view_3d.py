@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import plotly.graph_objs as go
 from sklearn.decomposition import PCA
@@ -6,60 +7,80 @@ from gensim.models import Word2Vec
 from gensim.utils import simple_preprocess
 import matplotlib.pyplot as plt
 
-def run(sentences):
-    st.subheader("\U0001F9ED 3D Vector Space View")
-
-    # Initialize session_state variables if not already there
+def init_session_state(sentences):
     st.session_state.setdefault("selected_indices_3d", [0, 1])
     st.session_state.setdefault("trigger_plot_3d", False)
-    st.session_state.setdefault("sentence_picker", [])
+    st.session_state.setdefault("sentence_picker", [f"Sentence {i+1}: {s}" for i, s in enumerate(sentences[:2])])
 
-    # Helper function to detect multiselect changes
-    def multiselect_changed(key, new_value):
-        if st.session_state.get(key) != new_value:
-            st.session_state[key] = new_value
-            st.session_state["trigger_plot_3d"] = False  # Force to rerun manually
+def multiselect_changed(key, new_value):
+    if st.session_state.get(key) != new_value:
+        st.session_state[key] = new_value
+        st.session_state["trigger_plot_3d"] = False
 
-    # Step 1: Prepare options
+def _draw_scatter(reduced_vectors, model, word_colors):
+    return go.Scatter3d(
+        x=reduced_vectors[:, 0],
+        y=reduced_vectors[:, 1],
+        z=reduced_vectors[:, 2],
+        mode='markers+text',
+        text=model.wv.index_to_key,
+        marker=dict(color=word_colors, size=3),
+        hovertemplate="Word: %{text}",
+        name="Words"
+    )
+
+def _draw_lines(reduced_vectors, model, tokenized_sentences, hex_colors):
+    traces = []
+    for i in st.session_state["selected_indices_3d"]:
+        if i >= len(tokenized_sentences):
+            continue
+        line_vectors = [reduced_vectors[model.wv.key_to_index[word]] for word in tokenized_sentences[i] if word in model.wv.key_to_index]
+        if len(line_vectors) > 1:
+            traces.append(go.Scatter3d(
+                x=[v[0] for v in line_vectors],
+                y=[v[1] for v in line_vectors],
+                z=[v[2] for v in line_vectors],
+                mode='lines',
+                line=dict(color=hex_colors[i], width=2),
+                name=f"Sentence {i+1}",
+                showlegend=True
+            ))
+    return traces
+
+def run(sentences):
+    st.subheader("🧭 3D Vector Space View")
+
+    init_session_state(sentences)
     all_options = [f"Sentence {i+1}: {s}" for i, s in enumerate(sentences)]
 
-    # Initialize default sentence_picker if empty
-    if not st.session_state["sentence_picker"]:
-        st.session_state["sentence_picker"] = [all_options[i] for i in [0, 1] if i < len(all_options)]
-
-    # Step 2: UI Selection
-    with st.expander("\U0001F3AF Select Sentences to Show Connection Lines", expanded=True):
+    with st.expander("🎯 Select Sentences to Show Connection Lines", expanded=True):
         selected_labels = st.multiselect(
             "Choose sentences to visualize:",
             options=all_options,
             default=st.session_state["sentence_picker"],
             key=None
         )
-
         multiselect_changed("sentence_picker", selected_labels)
-
         st.markdown(f"✅ Currently selected: **{len(st.session_state['sentence_picker'])} sentence(s)**")
 
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("\U0001F680 Run Visualization", key="run_viz_button_3d"):
+            if st.button("🚀 Run Visualization", key="run_viz_button_3d"):
                 st.session_state["selected_indices_3d"] = [
                     i for i, label in enumerate(all_options) if label in st.session_state["sentence_picker"]
                 ]
                 st.session_state["trigger_plot_3d"] = True
         with col2:
-            if st.button("\U0001F501 Reset Selection", key="reset_viz_button_3d"):
+            if st.button("🔁 Reset Selection", key="reset_viz_button_3d"):
                 st.session_state["selected_indices_3d"] = [0, 1]
-                st.session_state["sentence_picker"] = [all_options[i] for i in [0, 1] if i < len(all_options)]
+                st.session_state["sentence_picker"] = [f"Sentence {i+1}: {s}" for i, s in enumerate(sentences[:2])]
                 st.session_state["trigger_plot_3d"] = False
 
-    # Step 3: Check if ready to plot
     if not st.session_state.get("trigger_plot_3d", False):
         st.warning("⚠️ You've modified your selection. Please click 'Run Visualization' again.")
         return
 
-    # Step 4: Proceed with plotting
-    with st.spinner("\U0001F504 Rendering 3D Word Embedding Plot..."):
+    with st.spinner("🔄 Rendering 3D Word Embedding Plot..."):
         tokenized_sentences = [simple_preprocess(s) for s in sentences]
         model = Word2Vec(tokenized_sentences, vector_size=100, window=5, min_count=1, workers=4)
         word_vectors = np.array([model.wv[word] for word in model.wv.index_to_key])
@@ -79,41 +100,28 @@ def run(sentences):
                     word_colors.append(hex_colors[i])
                     break
 
-        scatter = go.Scatter3d(
-            x=reduced_vectors[:, 0],
-            y=reduced_vectors[:, 1],
-            z=reduced_vectors[:, 2],
-            mode='markers+text',
-            text=model.wv.index_to_key,
-            marker=dict(color=word_colors, size=3),
-            hovertemplate="Word: %{text}"
-        )
-
-        fig = go.Figure(data=[scatter])
-
-        for i in st.session_state["selected_indices_3d"]:
-            if i >= len(tokenized_sentences):
-                continue
-            line_vectors = [reduced_vectors[model.wv.key_to_index[word]] for word in tokenized_sentences[i] if word in model.wv.key_to_index]
-            if len(line_vectors) > 1:
-                fig.add_trace(go.Scatter3d(
-                    x=[v[0] for v in line_vectors],
-                    y=[v[1] for v in line_vectors],
-                    z=[v[2] for v in line_vectors],
-                    mode='lines',
-                    line=dict(color=hex_colors[i], width=2),
-                    showlegend=False
-                ))
+        fig = go.Figure()
+        fig.add_trace(_draw_scatter(reduced_vectors, model, word_colors))
+        fig.add_traces(_draw_lines(reduced_vectors, model, tokenized_sentences, hex_colors))
 
         fig.update_layout(
             scene=dict(xaxis_title="X", yaxis_title="Y", zaxis_title="Z"),
             title="3D Word Embedding Visualization",
-            width=1000, height=900
+            width=1000, height=900,
+            legend=dict(
+                title="Selected Sentences",
+                orientation="v",    # 垂直排
+                x=1.05,             # Legend稍微往右移
+                y=1,
+                bgcolor="rgba(255,255,255,0.7)",  # 半透明白色背景
+                bordercolor="Black",
+                borderwidth=1
+            )
         )
 
-        st.plotly_chart(fig, use_container_width=True)
 
-    # Step 5: Show input sentences
-    with st.expander("\U0001F4C4 Show Input Sentences", expanded=False):
+        st.plotly_chart(fig, use_container_width=True, key=f"view3d_plot_{int(time.time()*1000)}")
+
+    with st.expander("📄 Show Input Sentences", expanded=False):
         for i, sentence in enumerate(sentences, 1):
             st.markdown(f"**Sentence {i}:** {sentence}")

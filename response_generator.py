@@ -10,7 +10,7 @@ def generate_response(prompt):
     # 可執行 Word2Vec 子模組對應表
     vector_semantics_tasks = {
         "view2d": (view_2d.run, "🧭 2D Word Embedding Visualization is ready to run. Please provide your input sentences in the UI."),
-        # "view3d": (view_3d.run, "📡 3D Word Embedding Visualization is ready to run."),
+        "view3d": (view_3d.run, "📡 3D Word Embedding Visualization is ready to run."),
         # "cbow": (cbow.run, "📘 CBOW model is ready to run."),
         # "skipgram": (skipgram.run, "⚙️ Skip-gram model is ready to run."),
         # "negative sampling": (negative_sampling.run, "🔍 Negative Sampling is ready to run.")
@@ -51,6 +51,7 @@ def generate_response(prompt):
         {pdf_context}
         ----------------------------------\n
         """
+
     elif "show pdf page" in prompt:
         match = re.search(r"show pdf page (\d+)", prompt)
         if match:

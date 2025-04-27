@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import plotly.express as px
 import plotly.graph_objs as go
@@ -73,7 +74,8 @@ def run(sentences):
         marker=dict(color=word_colors, size=8),
         customdata=word_colors,
         ids=word_ids,
-        hovertemplate="Word: %{text}<br>Color: %{customdata}"
+        hovertemplate="Word: %{text}<br>Color: %{customdata}",
+        name="Words"
     )
 
     # Create line traces for each displayed sentence
@@ -113,4 +115,4 @@ def run(sentences):
             st.markdown(f"**Sentence {i}:** {sentence}")
 
     # Show the plot
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key=f"view2d_plotly_chart_{time.time()}")
