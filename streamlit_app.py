@@ -6,7 +6,7 @@ import requests
 from openai import OpenAI
 from db_utils import init_db, get_user_profile, save_user_profile
 from qa_utils.Word2vec import view_2d, view_3d
-from ui_utils import show_dismissible_alert
+from ui_utils import render_pdf_upload_section, show_dismissible_alert
 from pdf_context import *
 from response_generator import generate_response
 
@@ -71,23 +71,6 @@ def render_sidebar():
                     st.session_state["user_image"] = new_image
                     st.success("Profile saved! Please refresh to see changes.")
                     st.rerun()
-
-def render_pdf_upload_section():
-    with st.expander("📄 Upload a PDF file", expanded=True):
-        uploaded_file = st.file_uploader("", type=["pdf"])
-
-        # 若已解析 pdf 就不要重複執行
-        if uploaded_file and "pdf_text" not in st.session_state:
-            doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
-            extracted = extract_text_by_page(doc, max_pages=len(doc))
-            st.session_state["pdf_text"] = extracted
-            st.success("✅ PDF uploaded and parsed successfully!")
-
-        # Clear button
-        if "pdf_text" in st.session_state:
-            if st.button("🗑️ Clear PDF"):
-                del st.session_state["pdf_text"]
-                st.rerun()
 
 def render_vector_task_section():
     if "vector_task_function" not in st.session_state:
