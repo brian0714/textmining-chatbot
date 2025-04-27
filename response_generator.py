@@ -32,11 +32,11 @@ def generate_response(prompt):
         return (
             "📝 It looks like your prompt might not match the expected operations.\n\n"
             "💡 Try entering prompts like:\n"
-            "- Show content\n"
-            "- Show pdf page <num>\n"
-            "- Vector Semantics - Word2vec\n"
-            "- Clustering analysis\n"
-            "- ESG analysis\n\n"
+            "- `Show content`\n"
+            "- `Show pdf page <num>`\n"
+            "- `Vector Semantics - Word2vec`\n"
+            "- `Clustering analysis`\n"
+            "- `ESG analysis`\n\n"
             "📄 Also, make sure you've uploaded a PDF file first!"
         )
 

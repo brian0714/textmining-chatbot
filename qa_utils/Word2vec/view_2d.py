@@ -16,7 +16,8 @@ def run(sentences):
     # print(len(tokenized_sentences))
 
     # ❗Error handling: no valid words to train
-    if not tokenized_sentences:
+    flat_tokens = [word for sentence in tokenized_sentences for word in sentence]
+    if not tokenized_sentences or not flat_tokens:
         st.error("❌ No valid words found in your input. Please enter meaningful sentences with actual words.")
         return
 
@@ -62,6 +63,7 @@ def run(sentences):
 
     word_ids = [f"word-{i}" for i in range(len(model.wv.index_to_key))]
 
+    # Create a 2D scatter plot using Plotly
     scatter = go.Scatter(
         x=reduced_vectors[:, 0],
         y=reduced_vectors[:, 1],

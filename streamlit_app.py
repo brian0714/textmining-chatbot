@@ -1,3 +1,4 @@
+import json
 import streamlit as st
 from openai import OpenAI
 import time
@@ -26,6 +27,12 @@ def is_valid_image_url(url):
             return False
     except:
         return False
+
+# 讀取 JSON 檔案中的範例句子
+def load_example_from_json(json_path, key):
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data.get(key, "")  # 如果找不到key就回傳空字串
 
 def main():
     st.set_page_config(
@@ -75,7 +82,7 @@ def main():
 
         st.markdown("---")
 
-        # radio expander
+        # radio expander (radio button 格式)
         # with st.expander("📦 Vector Semantics - Word2vec", expanded=False):
         #     option = st.radio(
         #         "Select a function:",
@@ -88,18 +95,17 @@ def main():
             if st.button("🧭 Vector space - 2D View"):
                 st.session_state["vector_task"] = view_2d.run
 
-            # if st.button("🧭 Vector space - 3D View"):
-            #     st.session_state["vector_task"] = view_3d.run
+            if st.button("🧭 Vector space - 3D View"):
+                st.session_state["vector_task"] = view_3d.run
 
             # if st.button("⚙️ SKIP-GRAM"):
-            #     st.session_state["vector_task"] = skipgram.run
+            #     st.session_state["vector_task"] = 1#skipgram.run
 
             # if st.button("📘 CBOW"):
-            #     st.session_state["vector_task"] = cbow.run
+            #     st.session_state["vector_task"] = 1#cbow.run
 
             # if st.button("🔍 Negative Sampling"):
-            #     st.session_state["vector_task"] = negative_sampling.run
-
+            #     st.session_state["vector_task"] = 1#negative_sampling.run
 
         st.markdown("---")
         # st.write("🌐 Language")
@@ -128,17 +134,36 @@ def main():
     if "vector_task" in st.session_state and callable(st.session_state["vector_task"]):
         st.markdown("## 🧠 Provide your own sentences for Word2Vec")
 
-        # 使用者輸入區塊
+        # --- User input block ---
+        # 初始化 session_state
+        if "user_input_text" not in st.session_state:
+            st.session_state["user_input_text"] = ""
+
+        # 按鈕：載入範例
+        if st.button("🔖 Load Example Sentences"):
+            example_text = load_example_from_json("db/examples.json", "vector semantic example")
+            st.session_state["user_input_text"] = example_text
+
+        # 使用者輸入區塊，綁定 session_state
         user_input_text = st.text_area(
             label="Enter sentences (one per line):",
+            value=st.session_state["user_input_text"],
             height=300,
             placeholder="Type one sentence per line...\nExample:\nThe food is fresh and safe.\nWe promote energy saving."
         )
 
-        if st.button("🚀 Run Vector Task") and user_input_text.strip():
-            # 分割成 list of sentences
-            input_sentences = [line.strip() for line in user_input_text.splitlines() if line.strip()]
-            st.session_state["vector_task"](sentences=input_sentences)
+        # 每次文字框更新，也同步到 session_state
+        st.session_state["user_input_text"] = user_input_text
+
+        # 按鈕：執行向量任務
+        if st.button("🚀 Run Vector Task"):
+            # 若有input, 分割成 list of sentences
+            if user_input_text.strip():
+                input_sentences = [line.strip() for line in user_input_text.splitlines() if line.strip()]
+                st.session_state["vector_task"](sentences=input_sentences)
+            # 無input, 則提示使用者輸入
+            else:
+                st.warning("⚠️ Please enter some sentences before running the vector task.")
 
     # chat section
     if "messages" not in st.session_state:
@@ -185,6 +210,13 @@ def main():
         st.session_state["vector_task"] = st.session_state["pending_vector_task"]
         del st.session_state["pending_vector_task"]
         st.rerun()  # 🔁 強制 rerun 以觸發 render
+    # if "pending_vector_task" in st.session_state:
+    #     if "vector_task" not in st.session_state:
+    #         st.session_state["vector_task"] = st.session_state["pending_vector_task"]
+    #         del st.session_state["pending_vector_task"]
+    #         st.query_params(task="set")  # 觸發 UI state 標記，不 rerun
+    #     else:
+    #         pass  # 已設定，什麼都不做，不要再 rerun
 
 if __name__ == "__main__":
     main()
