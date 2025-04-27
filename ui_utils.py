@@ -3,7 +3,7 @@ import streamlit as st
 from pdf_context import *
 
 # pdf upload section
-def pdf_upload_section():
+def render_pdf_upload_section():
     with st.expander("📄 Upload a PDF file", expanded=True):
         uploaded_file = st.file_uploader("Upload PDF file", type=["pdf"], label_visibility="collapsed")
 
