@@ -8,18 +8,23 @@ from gensim.models import Word2Vec
 from gensim.utils import simple_preprocess
 import pandas as pd
 import matplotlib.pyplot as plt
+from pdf_context import preprocess_pdf_sentences
 
 def run(sentences):
     st.subheader("🧭 2D Vector Space View")
 
     # Preprocess the sentences
-    tokenized_sentences = [simple_preprocess(sentence) for sentence in sentences]
-    # print(len(tokenized_sentences))
+    if "pdf_text" in st.session_state and st.session_state["pdf_text"]:
+        # PDF uploaded ➔ use light preprocessing
+        tokenized_sentences = preprocess_pdf_sentences(raw_text=sentences)
+    else:
+        # Normal text input ➔ use simple_preprocess
+        tokenized_sentences = [simple_preprocess(sentence) for sentence in sentences]
 
     # ❗Error handling: no valid words to train
     flat_tokens = [word for sentence in tokenized_sentences for word in sentence]
     if not tokenized_sentences or not flat_tokens:
-        st.error("❌ No valid words found in your input. Please enter meaningful sentences with actual words.")
+        st.error(f"❌ No valid words found in your input. Please enter meaningful sentences with actual words.\n{sentences}\n\n{tokenized_sentences}\n\n{flat_tokens}")
         return
 
     # Train a Word2Vec model

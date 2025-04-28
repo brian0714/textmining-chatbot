@@ -1,5 +1,11 @@
 import streamlit as st
 import re
+import nltk
+
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    nltk.download('punkt_tab', quiet=True)
 
 def clean_text(text):
     text = re.sub(r'\s+', ' ', text)
@@ -57,3 +63,33 @@ def get_pdf_context(page="all") -> str:
         return f"Page {page} not found in the PDF."
 
     return "\n\n".join([f"[Page {p['page']}]: {p['content']}" for p in st.session_state["pdf_text"]])
+
+def preprocess_pdf_sentences(raw_text):
+    """
+    Preprocesses PDF text that contains page markers like [Page 1]:.
+
+    Args:
+        raw_text (str): Raw extracted text from PDF, formatted like "[Page 1]: content\n\n[Page 2]: content".
+
+    Returns:
+        List[List[str]]: A list of tokenized sentences (each sentence is a list of words).
+    """
+    if not raw_text or not isinstance(raw_text, str):
+        return []
+
+    tokenized_sentences = []
+
+    # Split by two newlines (page break)
+    page_paragraphs = raw_text.split("\n\n")
+
+    for paragraph in page_paragraphs:
+        # Remove the [Page x]: pattern at the beginning
+        cleaned = re.sub(r"\[Page\s*\d+\]:\s*", "", paragraph).strip()
+        if cleaned:
+            sentences = nltk.sent_tokenize(cleaned)
+            for sent in sentences:
+                words = nltk.word_tokenize(sent)
+                if words:
+                    tokenized_sentences.append(words)
+
+    return tokenized_sentences
