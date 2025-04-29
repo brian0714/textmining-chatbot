@@ -49,6 +49,7 @@ def _draw_lines(reduced_vectors, model, tokenized_sentences, hex_colors):
     return traces
 
 def run(sentences, source="manual"):
+    st.markdown("---")
     st.subheader("🧭 3D Vector Space View")
 
     if source == "pdf":
@@ -59,11 +60,12 @@ def run(sentences, source="manual"):
         preprocessed_sentences = sentences
 
     # Safe truncation for very long sentences
-    # MAX_LEN = 200
-    # safe_display_sentences = [s if len(s) <= MAX_LEN else s[:MAX_LEN] + "..." for s in display_sentences]
+    MAX_LEN = 200
+    safe_display_sentences = [s if len(s) <= MAX_LEN else s[:MAX_LEN] + "..." for s in display_sentences]
 
     # multiselect options
-    all_options = [f"Sentence {i+1}: {s}" for i, s in enumerate(display_sentences)]
+    # all_options = [f"Sentence {i+1}: {s}" for i, s in enumerate(display_sentences)]
+    all_options = [f"Sentence {i+1}: {s}" for i, s in enumerate(safe_display_sentences)]
 
     init_session_state(display_sentences)
 

@@ -18,11 +18,17 @@ def extract_text_by_page(doc, max_pages=40, skip_pages=[]):
     total_items = len(doc)
     total_pages = min(len(doc), max_pages)
 
+    # 新增 Streamlit progress bar 和狀態
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
     for page_number, page in enumerate(doc):
         if page_number >= max_pages:
             break
         if int(page_number) + 1 in skip_pages:
-            print(f"Skip page {page_number+1}")
+            message = f"⏭️ Skip page {page_number + 1}"
+            print(message)
+            status_text.info(message)
             continue
 
         try:
@@ -33,6 +39,7 @@ def extract_text_by_page(doc, max_pages=40, skip_pages=[]):
             for table in tables:
                 df = table.to_pandas()
                 this_text += "\nTable:\n" + df.to_string() + "\n"
+
             print(f"Text length in page {page_number+1}: {len(this_text)}")
 
             formatted_full_text.append({
@@ -40,15 +47,23 @@ def extract_text_by_page(doc, max_pages=40, skip_pages=[]):
                 "content": this_text
             })
 
-            # Update progress
+            # 更新進度
             progress = (page_number + 1) / total_pages
-            print(f"Progress: {round(progress*100)}%")
-            print(f"Processing {page_number + 1}/{total_pages} pages with document (max_pages:{max_pages})...")
+            message = f"Progress: {round(progress*100)}% | Processing {page_number+1}/{total_pages} pages (max_pages: {max_pages})..."
+            print(message)
+            progress_bar.progress(progress)
+            status_text.info(message)
 
         except Exception as e:
-            print(f"(extract_text_by_page) Error processing page {page}: {e}")
+            error_msg = f"(extract_text_by_page) Error processing page {page_number+1}: {e}"
+            print(error_msg)
+            st.error(error_msg)
 
     print("Processing complete!")
+    progress_bar.progress(1.0)
+    status_text.success("✅ PDF processing complete!")
+    language = detect_pdf_language(doc)
+    st.info(f"🌏 Detected PDF language: **{language.upper()}**")
 
     return formatted_full_text
 
@@ -98,3 +113,29 @@ def preprocess_pdf_sentences(raw_text, tokenize=True):
             results.append(cleaned)
 
     return results
+
+def detect_pdf_language(doc, max_pages=10):
+    """
+    Very simple PDF language detection: sample a few pages and judge whether text is mainly Chinese or English.
+    """
+    if not doc:
+        return "unknown"
+
+    sample_text = ""
+    for page_number, page in enumerate(doc):
+        if page_number >= max_pages:
+            break
+        try:
+            sample_text += page.get_text()
+        except:
+            continue
+
+    chinese_chars = sum(1 for c in sample_text if '\u4e00' <= c <= '\u9fff')
+    english_chars = sum(1 for c in sample_text if c.isascii() and c.isalpha())
+
+    if chinese_chars > english_chars:
+        return "chinese"
+    elif english_chars > chinese_chars:
+        return "english"
+    else:
+        return "unknown"

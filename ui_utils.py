@@ -20,6 +20,15 @@ def render_pdf_upload_section():
                 del st.session_state["pdf_text"]
                 st.rerun()
 
+def display_pretty_table(df):
+    st.dataframe(
+        df.style.set_properties(**{
+            'text-align': 'center'
+        }).set_table_styles([
+            {'selector': 'thead th', 'props': [('text-align', 'center')]}
+        ])
+    )
+
 # alert section
 def show_dismissible_alert(key: str, text: str, alert_type="warning"):
     colors = {
