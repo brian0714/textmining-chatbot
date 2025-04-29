@@ -51,7 +51,13 @@ def train_word2vec(tokenized_sentences):
         workers=st.session_state.workers,
         sg=st.session_state.sg
     )
+
     model.build_vocab(tokenized_sentences)
+    if len(model.wv) == 0:
+        st.error(f"❌ Vocabulary is empty after applying Min Word Count = {st.session_state.min_count}.")
+        st.info("🔔 Try lowering 'Min Word Count' or adding more input sentences.")
+        st.stop()
+
     model.train(tokenized_sentences, total_examples=len(tokenized_sentences), epochs=model.epochs)
     return model
 
@@ -74,20 +80,22 @@ def plot_embeddings(model, query_words):
         'Word': labels
     })
 
-    # 🎯 加一個欄位: 是否是query word
-    df['Is_Query'] = df['Word'] == query_words[0]
+    df['Legend_Label'] = df['Word'].apply(lambda x: 'Query Word (Red)' if x == query_words[0] else 'Other Words (Blue)')
 
     fig = px.scatter(
         df,
         x='X',
         y='Y',
         text='Word',
-        color='Is_Query',  # 🔥 根據是不是 Query word 來決定顏色
-        color_discrete_map={True: 'red', False: 'blue'},
-        title="Word Embeddings Visualization"
+        color='Legend_Label',
+        color_discrete_map={
+            'Query Word (Red)': 'red',
+            'Other Words (Blue)': 'blue'
+        },
+        title="Word Embeddings Visualization",
     )
 
-    fig.update_traces(marker=dict(size=10))  # 讓點比較明顯
+    fig.update_traces(marker=dict(size=10))  # 點點大一點
     st.plotly_chart(fig, use_container_width=True)
 
 def run(sentences=None, source="manual"):
