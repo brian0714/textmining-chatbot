@@ -7,6 +7,8 @@ autogen-agentchat
 autogen-ext[openai]
 
 # Data Processing
+ckip-transformers
+jieba
 gensim
 numpy==1.23.0
 nltk

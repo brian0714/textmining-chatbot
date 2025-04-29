@@ -40,7 +40,7 @@ def render_sidebar():
             else:
                 show_dismissible_alert(
                     "avatar_warning",
-                    "⚠️ Invalid avatar URL.<br>Showing default image.<br>Image Ref: <a href='https://unsplash.com/' target='_blank'>https://unsplash.com/</a>",
+                    "⚠️ Invalid avatar URL.<br>Showing default image.<br>Image Ref: <a href='https://unsplash.com/' target='_blank'>https://www.unsplash.com/",
                     alert_type="warning"
                 )
                 st.image("https://www.w3schools.com/howto/img_avatar.png")
@@ -99,7 +99,7 @@ def render_vector_task_section():
 
     if st.session_state.get("vector_task_function") == cbow_skipgram.run:
         with st.container():
-            st.info("ℹ️ Notice: You can manually input sentences above. If no sentences are entered, a default corpus (Brown corpus) will be used automatically.")
+            st.info("ℹ️ You can manually input sentences, or leave empty to use the default Brown corpus.")
 
     col3, col4 = st.columns(2)
     with col3:
@@ -109,6 +109,7 @@ def render_vector_task_section():
                 st.session_state["input_sentences"] = input_sentences
                 st.session_state["input_sentences_source"] = "manual"
             elif st.session_state.get("vector_task_function") == cbow_skipgram.run:
+                # Special case: cbow_skipgram allows no input
                 st.session_state["input_sentences"] = []
                 st.session_state["input_sentences_source"] = "manual"
             else:
@@ -117,18 +118,20 @@ def render_vector_task_section():
     with col4:
         if st.button("🚀 Run Vector Task with loaded PDF"):
             if "pdf_text" in st.session_state and st.session_state["pdf_text"]:
-                st.session_state["user_input_text"] = "" # Clear the text area
+                st.session_state["user_input_text"] = "" # clear manual input
                 input_sentences = get_pdf_context(page="all")
                 st.session_state["input_sentences"] = input_sentences
                 st.session_state["input_sentences_source"] = "pdf"
             else:
                 st.warning("⚠️ No PDF loaded. Please upload a PDF first.")
 
+    # --- 核心 --- 執行 vector function
     if st.session_state.get("input_sentences") is not None:
-        st.session_state["vector_task_function"](
-            sentences=st.session_state["input_sentences"],
-            source=st.session_state.get("input_sentences_source", "manual")
-        )
+        if len(st.session_state["input_sentences"]) > 0 or st.session_state["vector_task_function"] == cbow_skipgram.run:
+            st.session_state["vector_task_function"](
+                sentences=st.session_state["input_sentences"],
+                source=st.session_state.get("input_sentences_source", "manual")
+            )
 
     st.markdown("---")
 
@@ -181,8 +184,8 @@ def main():
         initial_sidebar_state='auto',
         menu_items={
             'Get Help': 'https://streamlit.io/',
-            'Report a bug': 'https://github.com',
-            'About': 'About your application: **Hello world**'
+            'Report a bug': 'https://github.com/',
+            'About': 'About your application: **https://github.com/brian0714/textmining-chatbot/blob/development/README.md**'
         },
         page_icon="img/favicon.ico"
     )

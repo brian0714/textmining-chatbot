@@ -67,9 +67,27 @@ def plot_embeddings(model, query_words):
         return
 
     reduced = PCA(n_components=2).fit_transform(vectors)
-    df = pd.DataFrame({'X': reduced[:, 0], 'Y': reduced[:, 1], 'Word': labels})
 
-    fig = px.scatter(df, x='X', y='Y', text='Word', title="Word Embeddings Visualization")
+    df = pd.DataFrame({
+        'X': reduced[:, 0],
+        'Y': reduced[:, 1],
+        'Word': labels
+    })
+
+    # 🎯 加一個欄位: 是否是query word
+    df['Is_Query'] = df['Word'] == query_words[0]
+
+    fig = px.scatter(
+        df,
+        x='X',
+        y='Y',
+        text='Word',
+        color='Is_Query',  # 🔥 根據是不是 Query word 來決定顏色
+        color_discrete_map={True: 'red', False: 'blue'},
+        title="Word Embeddings Visualization"
+    )
+
+    fig.update_traces(marker=dict(size=10))  # 讓點比較明顯
     st.plotly_chart(fig, use_container_width=True)
 
 def run(sentences=None, source="manual"):
@@ -125,7 +143,7 @@ def run(sentences=None, source="manual"):
         elif sentences:
             st.success("✅ Model trained successfully from **manual input**!")
         else:
-            st.success("✅ Model trained successfully from **default Brown corpus**!")
+            st.success("✅ Model trained successfully from **default `Brown` corpus**!")
 
     st.markdown("---")
 
