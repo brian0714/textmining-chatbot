@@ -97,6 +97,10 @@ def render_vector_task_section():
     )
     st.session_state["user_input_text"] = user_input_text
 
+    if st.session_state.get("vector_task_function") == cbow_skipgram.run:
+        with st.container():
+            st.info("ℹ️ Notice: You can manually input sentences above. If no sentences are entered, a default corpus (Brown corpus) will be used automatically.")
+
     col3, col4 = st.columns(2)
     with col3:
         if st.button("🚀 Run Vector Task"):
@@ -104,22 +108,26 @@ def render_vector_task_section():
                 input_sentences = [line.strip() for line in user_input_text.splitlines() if line.strip()]
                 st.session_state["input_sentences"] = input_sentences
                 st.session_state["input_sentences_source"] = "manual"
+            elif st.session_state.get("vector_task_function") == cbow_skipgram.run:
+                st.session_state["input_sentences"] = []
+                st.session_state["input_sentences_source"] = "manual"
             else:
                 st.warning("⚠️ Please enter some sentences before running the vector task.")
 
     with col4:
         if st.button("🚀 Run Vector Task with loaded PDF"):
             if "pdf_text" in st.session_state and st.session_state["pdf_text"]:
+                st.session_state["user_input_text"] = "" # Clear the text area
                 input_sentences = get_pdf_context(page="all")
                 st.session_state["input_sentences"] = input_sentences
                 st.session_state["input_sentences_source"] = "pdf"
             else:
                 st.warning("⚠️ No PDF loaded. Please upload a PDF first.")
-    # 執行
-    if st.session_state.get("input_sentences"):
+
+    if st.session_state.get("input_sentences") is not None:
         st.session_state["vector_task_function"](
             sentences=st.session_state["input_sentences"],
-            source=st.session_state.get("input_sentences_source", "manual")  # ✅ 同時把 source 傳進去
+            source=st.session_state.get("input_sentences_source", "manual")
         )
 
     st.markdown("---")
