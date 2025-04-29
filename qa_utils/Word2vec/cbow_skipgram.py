@@ -6,14 +6,16 @@ from gensim.models import Word2Vec
 from gensim.utils import simple_preprocess
 from gensim.parsing.preprocessing import remove_stopwords
 from sklearn.decomposition import PCA
+from pdf_context import preprocess_pdf_sentences
 
+# Ensure necessary NLTK resources are downloaded
 try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
-    nltk.download('punkt_tab', quiet=True)
+    nltk.download('punkt', quiet=True)
 
 try:
-    nltk.data.find('tokenizers/brown')
+    nltk.data.find('corpora/brown')
 except LookupError:
     nltk.download('brown', quiet=True)
 
@@ -25,19 +27,21 @@ def init_session_state():
         "workers": 4,
         "sg": 1,
         "user_sentences": "",
-        "query_word": "environmental"
+        "query_word": "",
     }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
-def get_training_sentences():
-    if "pdf_text" in st.session_state and st.session_state.pdf_text:
-        sentences = st.session_state.pdf_text
+def get_training_sentences(source="manual"):
+    if source == "pdf" and "pdf_text" in st.session_state and st.session_state.pdf_text:
+        sentences = preprocess_pdf_sentences(raw_text=st.session_state.pdf_text, tokenize=True)
     else:
         sentences = [" ".join(sent) for sent in nltk.corpus.brown.sents()]
+
     if st.session_state.user_sentences.strip():
         sentences += st.session_state.user_sentences.strip().split("\n")
+
     return [simple_preprocess(remove_stopwords(sentence)) for sentence in sentences if sentence.strip()]
 
 def train_word2vec(tokenized_sentences):
@@ -79,7 +83,7 @@ def plot_embeddings(model, query_words):
     fig = px.scatter(df, x='X', y='Y', text='Word', title="Word Embeddings Visualization")
     st.plotly_chart(fig, use_container_width=True)
 
-def run(sentences=None):
+def run(sentences=None, source="manual"):
     st.subheader("🧠 CBOW and Skip-Gram Word2Vec Trainer")
 
     init_session_state()
@@ -95,23 +99,24 @@ def run(sentences=None):
     with st.expander("📄 Data Source", expanded=True):
         st.session_state.user_sentences = st.text_area("Add more sentences (one per line)", value=st.session_state.user_sentences, height=200)
 
-    with st.expander("🔍 Query Word", expanded=True):
-        st.session_state.query_word = st.text_input("Word to explore (e.g., 'environmental')", value=st.session_state.query_word)
-
     st.markdown("---")
 
     if sentences is None:
-        tokenized_sentences = get_training_sentences()
+        tokenized_sentences = get_training_sentences(source=source)
     else:
-        tokenized_sentences = [simple_preprocess(remove_stopwords(sentence)) for sentence in sentences if sentence.strip()]
+        if source == "pdf":
+            processed = preprocess_pdf_sentences(raw_text=sentences, tokenize=True)
+            tokenized_sentences = [simple_preprocess(remove_stopwords(sentence)) for sentence in processed if sentence.strip()]
+        else:
+            tokenized_sentences = [simple_preprocess(remove_stopwords(sentence)) for sentence in sentences if sentence.strip()]
 
     model = train_word2vec(tokenized_sentences)
-
     st.success("✅ Model trained successfully!")
 
-    if st.button("🔎 Show Embedding Visualization"):
-        sample_words = [st.session_state.query_word] + [word for word, _ in model.wv.most_similar(st.session_state.query_word, topn=5)]
-        plot_embeddings(model, sample_words)
+    st.markdown("---")
+
+    with st.expander("🔍 Query Word", expanded=True):
+        st.session_state.query_word = st.selectbox("Choose a word to find similar words:", model.wv.index_to_key)
 
     if st.session_state.query_word in model.wv:
         st.markdown(f"### 🔥 Similar Words to **{st.session_state.query_word}**:")
@@ -119,3 +124,9 @@ def run(sentences=None):
         st.table(pd.DataFrame(similar_words, columns=["Word", "Similarity"]))
     else:
         st.warning(f"Word '{st.session_state.query_word}' not found in vocabulary.")
+
+    st.markdown("---")
+
+    if st.button("🔎 Show Embedding Visualization"):
+        sample_words = [st.session_state.query_word] + [word for word, _ in model.wv.most_similar(st.session_state.query_word, topn=5)]
+        plot_embeddings(model, sample_words)

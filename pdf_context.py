@@ -64,32 +64,37 @@ def get_pdf_context(page="all") -> str:
 
     return "\n\n".join([f"[Page {p['page']}]: {p['content']}" for p in st.session_state["pdf_text"]])
 
-def preprocess_pdf_sentences(raw_text):
+def preprocess_pdf_sentences(raw_text, tokenize=True):
     """
-    Preprocesses PDF text that contains page markers like [Page 1]:.
+    Preprocess PDF text extracted from pages like [Page 1]: content\n\n[Page 2]: content.
 
     Args:
-        raw_text (str): Raw extracted text from PDF, formatted like "[Page 1]: content\n\n[Page 2]: content".
+        raw_text (str): Raw extracted text from PDF.
+        tokenize (bool): Whether to split paragraphs into sentences using nltk.sent_tokenize.
 
     Returns:
-        List[List[str]]: A list of tokenized sentences (each sentence is a list of words).
+        List[str]: List of sentences or paragraphs.
     """
     if not raw_text or not isinstance(raw_text, str):
         return []
 
-    tokenized_sentences = []
+    results = []
 
-    # Split by two newlines (page break)
+    # Step 1: Split by double newlines (page breaks)
     page_paragraphs = raw_text.split("\n\n")
 
     for paragraph in page_paragraphs:
-        # Remove the [Page x]: pattern at the beginning
+        # Remove [Page x]: marker
         cleaned = re.sub(r"\[Page\s*\d+\]:\s*", "", paragraph).strip()
-        if cleaned:
-            sentences = nltk.sent_tokenize(cleaned)
-            for sent in sentences:
-                words = nltk.word_tokenize(sent)
-                if words:
-                    tokenized_sentences.append(words)
+        if not cleaned:
+            continue
 
-    return tokenized_sentences
+        if tokenize:
+            # Split into sentences
+            split_sentences = nltk.sent_tokenize(cleaned)
+            results.extend([s.lower() for s in split_sentences if s.strip()])
+        else:
+            # Directly treat as one "sentence" (no splitting)
+            results.append(cleaned)
+
+    return results

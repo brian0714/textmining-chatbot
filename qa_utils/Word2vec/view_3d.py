@@ -6,6 +6,7 @@ import streamlit as st
 from gensim.models import Word2Vec
 from gensim.utils import simple_preprocess
 import matplotlib.pyplot as plt
+from pdf_context import preprocess_pdf_sentences
 
 def init_session_state(sentences):
     st.session_state.setdefault("selected_indices_3d", [0, 1])
@@ -47,11 +48,24 @@ def _draw_lines(reduced_vectors, model, tokenized_sentences, hex_colors):
             ))
     return traces
 
-def run(sentences):
+def run(sentences, source="manual"):
     st.subheader("🧭 3D Vector Space View")
 
-    init_session_state(sentences)
-    all_options = [f"Sentence {i+1}: {s}" for i, s in enumerate(sentences)]
+    if source == "pdf":
+        display_sentences = preprocess_pdf_sentences(raw_text=sentences, tokenize=False)
+        preprocessed_sentences = preprocess_pdf_sentences(raw_text=sentences, tokenize=True)
+    else:
+        display_sentences = sentences
+        preprocessed_sentences = sentences
+
+    # Safe truncation for very long sentences
+    # MAX_LEN = 200
+    # safe_display_sentences = [s if len(s) <= MAX_LEN else s[:MAX_LEN] + "..." for s in display_sentences]
+
+    # multiselect options
+    all_options = [f"Sentence {i+1}: {s}" for i, s in enumerate(display_sentences)]
+
+    init_session_state(display_sentences)
 
     with st.expander("🎯 Select Sentences to Show Connection Lines", expanded=True):
         selected_labels = st.multiselect(
@@ -73,7 +87,7 @@ def run(sentences):
         with col2:
             if st.button("🔁 Reset Selection", key="reset_viz_button_3d"):
                 st.session_state["selected_indices_3d"] = [0, 1]
-                st.session_state["sentence_picker"] = [f"Sentence {i+1}: {s}" for i, s in enumerate(sentences[:2])]
+                st.session_state["sentence_picker"] = [f"Sentence {i+1}: {s}" for i, s in enumerate(safe_display_sentences[:2])]
                 st.session_state["trigger_plot_3d"] = False
 
     if not st.session_state.get("trigger_plot_3d", False):
@@ -81,7 +95,13 @@ def run(sentences):
         return
 
     with st.spinner("🔄 Rendering 3D Word Embedding Plot..."):
-        tokenized_sentences = [simple_preprocess(s) for s in sentences]
+        tokenized_sentences = [simple_preprocess(s) for s in preprocessed_sentences]
+
+        flat_tokens = [word for sentence in tokenized_sentences for word in sentence]
+        if not tokenized_sentences or not flat_tokens:
+            st.error(f"❌ No valid words found.\n{sentences}\n\n{tokenized_sentences}\n\n{flat_tokens}")
+            return
+
         model = Word2Vec(tokenized_sentences, vector_size=100, window=5, min_count=1, workers=4)
         word_vectors = np.array([model.wv[word] for word in model.wv.index_to_key])
 
@@ -110,18 +130,25 @@ def run(sentences):
             width=1000, height=900,
             legend=dict(
                 title="Selected Sentences",
-                orientation="v",    # 垂直排
-                x=1.05,             # Legend稍微往右移
+                orientation="v",
+                x=1.05,
                 y=1,
-                bgcolor="rgba(255,255,255,0.7)",  # 半透明白色背景
+                bgcolor="rgba(255,255,255,0.7)",
                 bordercolor="Black",
                 borderwidth=1
             )
         )
 
-
         st.plotly_chart(fig, use_container_width=True, key=f"view3d_plot_{int(time.time()*1000)}")
 
     with st.expander("📄 Show Input Sentences", expanded=False):
-        for i, sentence in enumerate(sentences, 1):
+        max_display = 50
+        num_sentences = len(display_sentences)
+
+        if num_sentences > max_display:
+            st.markdown(f"⚡ Showing only the first {max_display} of {num_sentences} sentences:")
+            display_sentences = display_sentences[:max_display]
+
+        for i, sentence in enumerate(display_sentences, 1):
             st.markdown(f"**Sentence {i}:** {sentence}")
+

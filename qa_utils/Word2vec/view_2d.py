@@ -10,15 +10,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pdf_context import preprocess_pdf_sentences
 
-def run(sentences):
+def run(sentences, source="manual"):
     st.subheader("🧭 2D Vector Space View")
 
     # Preprocess the sentences
-    if "pdf_text" in st.session_state and st.session_state["pdf_text"]:
-        # PDF uploaded ➔ use light preprocessing
+    if source == "pdf":
+        # PDF模式 ➔ 是一整個string，直接用自訂preprocessing
+        preprocessed_sentences = preprocess_pdf_sentences(raw_text=sentences, tokenize=False)
         tokenized_sentences = preprocess_pdf_sentences(raw_text=sentences)
     else:
-        # Normal text input ➔ use simple_preprocess
+        # 手打textarea模式 ➔ 正常每行一句
+        preprocessed_sentences = sentences
         tokenized_sentences = [simple_preprocess(sentence) for sentence in sentences]
 
     # ❗Error handling: no valid words to train
@@ -116,8 +118,18 @@ def run(sentences):
 
     # Show the input sentences
     with st.expander("📄 Show Input Sentences", expanded=False):
-        for i, sentence in enumerate(sentences, 1):
+        max_display = 50
+        num_sentences = len(preprocessed_sentences)
+
+        if num_sentences > max_display:
+            st.markdown(f"⚡ Showing only the first {max_display} of {num_sentences} sentences:")
+            display_sentences = preprocessed_sentences[:max_display]
+        else:
+            display_sentences = preprocessed_sentences
+
+        for i, sentence in enumerate(display_sentences, 1):
             st.markdown(f"**Sentence {i}:** {sentence}")
+
 
     # Show the plot
     st.plotly_chart(fig, use_container_width=True, key=f"view2d_plotly_chart_{time.time()}")

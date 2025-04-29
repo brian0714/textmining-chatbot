@@ -103,6 +103,7 @@ def render_vector_task_section():
             if user_input_text.strip():
                 input_sentences = [line.strip() for line in user_input_text.splitlines() if line.strip()]
                 st.session_state["input_sentences"] = input_sentences
+                st.session_state["input_sentences_source"] = "manual"
             else:
                 st.warning("⚠️ Please enter some sentences before running the vector task.")
 
@@ -111,11 +112,17 @@ def render_vector_task_section():
             if "pdf_text" in st.session_state and st.session_state["pdf_text"]:
                 input_sentences = get_pdf_context(page="all")
                 st.session_state["input_sentences"] = input_sentences
+                st.session_state["input_sentences_source"] = "pdf"
             else:
                 st.warning("⚠️ No PDF loaded. Please upload a PDF first.")
-
+    # 執行
     if st.session_state.get("input_sentences"):
-        st.session_state["vector_task_function"](sentences=st.session_state["input_sentences"])
+        st.session_state["vector_task_function"](
+            sentences=st.session_state["input_sentences"],
+            source=st.session_state.get("input_sentences_source", "manual")  # ✅ 同時把 source 傳進去
+        )
+
+    st.markdown("---")
 
 def render_chat_section():
     st_c_chat = st.container(border=True)
