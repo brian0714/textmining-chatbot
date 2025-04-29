@@ -1,5 +1,11 @@
 import streamlit as st
 import re
+import nltk
+
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    nltk.download('punkt_tab', quiet=True)
 
 def clean_text(text):
     text = re.sub(r'\s+', ' ', text)
@@ -57,3 +63,38 @@ def get_pdf_context(page="all") -> str:
         return f"Page {page} not found in the PDF."
 
     return "\n\n".join([f"[Page {p['page']}]: {p['content']}" for p in st.session_state["pdf_text"]])
+
+def preprocess_pdf_sentences(raw_text, tokenize=True):
+    """
+    Preprocess PDF text extracted from pages like [Page 1]: content\n\n[Page 2]: content.
+
+    Args:
+        raw_text (str): Raw extracted text from PDF.
+        tokenize (bool): Whether to split paragraphs into sentences using nltk.sent_tokenize.
+
+    Returns:
+        List[str]: List of sentences or paragraphs.
+    """
+    if not raw_text or not isinstance(raw_text, str):
+        return []
+
+    results = []
+
+    # Step 1: Split by double newlines (page breaks)
+    page_paragraphs = raw_text.split("\n\n")
+
+    for paragraph in page_paragraphs:
+        # Remove [Page x]: marker
+        cleaned = re.sub(r"\[Page\s*\d+\]:\s*", "", paragraph).strip()
+        if not cleaned:
+            continue
+
+        if tokenize:
+            # Split into sentences
+            split_sentences = nltk.sent_tokenize(cleaned)
+            results.extend([s.lower() for s in split_sentences if s.strip()])
+        else:
+            # Directly treat as one "sentence" (no splitting)
+            results.append(cleaned)
+
+    return results

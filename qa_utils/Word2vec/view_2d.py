@@ -8,18 +8,25 @@ from gensim.models import Word2Vec
 from gensim.utils import simple_preprocess
 import pandas as pd
 import matplotlib.pyplot as plt
+from pdf_context import preprocess_pdf_sentences
 
-def run(sentences):
+def run(sentences, source="manual"):
     st.subheader("🧭 2D Vector Space View")
 
     # Preprocess the sentences
-    tokenized_sentences = [simple_preprocess(sentence) for sentence in sentences]
-    # print(len(tokenized_sentences))
+    if source == "pdf":
+        # PDF模式 ➔ 是一整個string，直接用自訂preprocessing
+        preprocessed_sentences = preprocess_pdf_sentences(raw_text=sentences, tokenize=False)
+        tokenized_sentences = preprocess_pdf_sentences(raw_text=sentences)
+    else:
+        # 手打textarea模式 ➔ 正常每行一句
+        preprocessed_sentences = sentences
+        tokenized_sentences = [simple_preprocess(sentence) for sentence in sentences]
 
     # ❗Error handling: no valid words to train
     flat_tokens = [word for sentence in tokenized_sentences for word in sentence]
     if not tokenized_sentences or not flat_tokens:
-        st.error("❌ No valid words found in your input. Please enter meaningful sentences with actual words.")
+        st.error(f"❌ No valid words found in your input. Please enter meaningful sentences with actual words.\n{sentences}\n\n{tokenized_sentences}\n\n{flat_tokens}")
         return
 
     # Train a Word2Vec model
@@ -111,8 +118,18 @@ def run(sentences):
 
     # Show the input sentences
     with st.expander("📄 Show Input Sentences", expanded=False):
-        for i, sentence in enumerate(sentences, 1):
+        max_display = 50
+        num_sentences = len(preprocessed_sentences)
+
+        if num_sentences > max_display:
+            st.markdown(f"⚡ Showing only the first {max_display} of {num_sentences} sentences:")
+            display_sentences = preprocessed_sentences[:max_display]
+        else:
+            display_sentences = preprocessed_sentences
+
+        for i, sentence in enumerate(display_sentences, 1):
             st.markdown(f"**Sentence {i}:** {sentence}")
+
 
     # Show the plot
     st.plotly_chart(fig, use_container_width=True, key=f"view2d_plotly_chart_{time.time()}")

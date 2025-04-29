@@ -5,7 +5,7 @@ import time
 import requests
 from openai import OpenAI
 from db_utils import init_db, get_user_profile, save_user_profile
-from qa_utils.Word2vec import view_2d, view_3d
+from qa_utils.Word2vec import view_2d, view_3d, cbow_skipgram
 from ui_utils import render_pdf_upload_section, show_dismissible_alert
 from pdf_context import *
 from response_generator import generate_response
@@ -54,6 +54,9 @@ def render_sidebar():
             if st.button("🧭 Vector space - 3D View"):
                 clear_vector_session_state()
                 st.session_state["vector_task_function"] = view_3d.run
+            if st.button("🧭 Cbow / Skip Gram"):
+                clear_vector_session_state()
+                st.session_state["vector_task_function"] = cbow_skipgram.run
 
         st.markdown("---")
         selected_lang = st.selectbox("🌐 Language", ["English", "繁體中文"], index=1)
@@ -77,14 +80,14 @@ def render_vector_task_section():
         return
 
     st.markdown("## 🧠 Provide your own sentences for Word2Vec")
-
-    # 初始化 input 區塊
     st.session_state.setdefault("user_input_text", "")
     st.session_state.setdefault("input_sentences", [])
 
-    if st.button("🔖 Load Example Sentences"):
-        example_text = load_example_from_json("db/examples.json", "vector semantic example")
-        st.session_state["user_input_text"] = example_text
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔖 Load Example Sentences"):
+            example_text = load_example_from_json("db/examples.json", "vector semantic example")
+            st.session_state["user_input_text"] = example_text
 
     user_input_text = st.text_area(
         label="Enter sentences (one per line):",
@@ -94,15 +97,32 @@ def render_vector_task_section():
     )
     st.session_state["user_input_text"] = user_input_text
 
-    if st.button("🚀 Run Vector Task"):
-        if user_input_text.strip():
-            input_sentences = [line.strip() for line in user_input_text.splitlines() if line.strip()]
-            st.session_state["input_sentences"] = input_sentences
-        else:
-            st.warning("⚠️ Please enter some sentences before running the vector task.")
+    col3, col4 = st.columns(2)
+    with col3:
+        if st.button("🚀 Run Vector Task"):
+            if user_input_text.strip():
+                input_sentences = [line.strip() for line in user_input_text.splitlines() if line.strip()]
+                st.session_state["input_sentences"] = input_sentences
+                st.session_state["input_sentences_source"] = "manual"
+            else:
+                st.warning("⚠️ Please enter some sentences before running the vector task.")
 
+    with col4:
+        if st.button("🚀 Run Vector Task with loaded PDF"):
+            if "pdf_text" in st.session_state and st.session_state["pdf_text"]:
+                input_sentences = get_pdf_context(page="all")
+                st.session_state["input_sentences"] = input_sentences
+                st.session_state["input_sentences_source"] = "pdf"
+            else:
+                st.warning("⚠️ No PDF loaded. Please upload a PDF first.")
+    # 執行
     if st.session_state.get("input_sentences"):
-        st.session_state["vector_task_function"](sentences=st.session_state["input_sentences"])
+        st.session_state["vector_task_function"](
+            sentences=st.session_state["input_sentences"],
+            source=st.session_state.get("input_sentences_source", "manual")  # ✅ 同時把 source 傳進去
+        )
+
+    st.markdown("---")
 
 def render_chat_section():
     st_c_chat = st.container(border=True)

@@ -1,5 +1,5 @@
 from pdf_context import *
-from qa_utils.Word2vec import view_2d, view_3d, skipgram, cbow, negative_sampling
+from qa_utils.Word2vec import view_2d, view_3d, cbow_skipgram, negative_sampling
 import re
 
 def generate_response(prompt):
@@ -11,8 +11,8 @@ def generate_response(prompt):
     vector_semantics_tasks = {
         "view2d": (view_2d.run, "🧭 2D Word Embedding Visualization is ready to run. Please provide your input sentences in the UI."),
         "view3d": (view_3d.run, "📡 3D Word Embedding Visualization is ready to run."),
-        # "cbow": (cbow.run, "📘 CBOW model is ready to run."),
-        # "skipgram": (skipgram.run, "⚙️ Skip-gram model is ready to run."),
+        "cbow": (cbow_skipgram.run, "📘 CBOW model is ready to run."),
+        "skipgram": (cbow_skipgram.run, "⚙️ Skip-gram model is ready to run."),
         # "negative sampling": (negative_sampling.run, "🔍 Negative Sampling is ready to run.")
     }
 
